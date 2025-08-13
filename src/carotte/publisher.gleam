@@ -28,21 +28,15 @@ pub type HeaderValue {
 
 fn header_value_to_header_tuple(
   value: HeaderValue,
-) -> #(atom.Atom, dynamic.Dynamic) {
+) -> #(dynamic.Dynamic, dynamic.Dynamic) {
   case value {
-    BoolHeader(value) -> #(atom.create_from_string("bool"), dynamic.from(value))
-    FloatHeader(value) -> #(
-      atom.create_from_string("float"),
-      dynamic.from(value),
-    )
-    IntHeader(value) -> #(atom.create_from_string("long"), dynamic.from(value))
-    StringHeader(value) -> #(
-      atom.create_from_string("longstr"),
-      dynamic.from(value),
-    )
+    BoolHeader(value) -> #(dynamic.string("bool"), dynamic.bool(value))
+    FloatHeader(value) -> #(dynamic.string("float"), dynamic.float(value))
+    IntHeader(value) -> #(dynamic.string("long"), dynamic.int(value))
+    StringHeader(value) -> #(dynamic.string("longstr"), dynamic.string(value))
     ListHeader(value) -> #(
-      atom.create_from_string("array"),
-      dynamic.from(value |> list.map(header_value_to_header_tuple)),
+      dynamic.string("array"),
+      dynamic.properties(value |> list.map(header_value_to_header_tuple)),
     )
   }
 }
@@ -52,7 +46,11 @@ pub fn headers_from_list(list: List(#(String, HeaderValue))) -> HeaderList {
   |> list.map(fn(item) {
     let #(name, value) = item
     let #(type_atom, value) = header_value_to_header_tuple(value)
+
     #(name, type_atom, value)
+  })
+  |> list.map(fn(element) {
+    #(element.0, atom.cast_from_dynamic(element.1), element.2)
   })
   |> HeaderList
 }
